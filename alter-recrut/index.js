@@ -12,7 +12,7 @@ async function main() {
     await oauth2Client.setCredentials({
         refresh_token: google_refresh_token, 
     });
-    const googleapis = {
+    api.google.client = {
         calendar: await google.calendar({ version: 'v3', auth: oauth2Client }),
         drive: await google.drive({ version: 'v3', auth: oauth2Client }),
         sheets: await google.sheets({ version: 'v4', auth: oauth2Client }),
@@ -20,10 +20,14 @@ async function main() {
         gmail: await google.gmail({ version: 'v1', auth: oauth2Client }),
     }
 
+    // Schedule appointments from Google sreadsheet BDD
+    // await api.appointments.schedule
+
+    // Riching companies from Google sreadsheet BDD
     await api.google.spreadsheet.rich(
         "1ru8WO_rx1eV9x5S6I49RfJJdCpeVPkF8WAatVjhEDAw", 
-        'COMPANIES', 
-        googleapis.sheets)
+        'COMPANIES'
+        )
 }
 main()
 
