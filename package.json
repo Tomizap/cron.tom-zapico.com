@@ -1,0 +1,19 @@
+{
+  "name": "cron.tom-zapico.com",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@tomizap/tools": "^1.0.3",
+    "axios": "^1.6.8",
+    "googleapis": "^134.0.0",
+    "stripe": "^14.22.0",
+    "uuid": "^9.0.1"
+  }
+}
