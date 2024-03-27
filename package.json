@@ -10,9 +10,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@tomizap/tools": "^1.0.5",
+    "@tomizap/tools": "1.0.12",
     "axios": "^1.6.8",
     "googleapis": "^134.0.0",
+    "nodemailer": "^6.9.13",
     "stripe": "^14.22.0",
     "uuid": "^9.0.1"
   }
