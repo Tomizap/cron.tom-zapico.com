@@ -1,6 +1,6 @@
 const axios = require('axios')
 
-FILE_PATH = "C:\\Users\\zapto\\Desktop\\fiducar\\fiducar.xml"
+// const FILE_PATH = "C:\\Users\\zapto\\Desktop\\fiducar\\fiducar.xml"
 
 let a = async function run () {
   while (true) {
