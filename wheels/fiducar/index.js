@@ -5,7 +5,9 @@ const axios = require('axios')
 let a = async function run () {
   while (true) {
       try {
-        axios.get('https://sw.ubiflow.net/diffusion-annonces.php?MDP_PARTENAIRE=a4d04dd3423c4ad61816f3d04005f999798f3399&DIFFUSEUR=SITE_FIDUCAR&ANNONCEUR=ag942850').then(async r => {
+        console.log('begin');
+        await axios.get('https://sw.ubiflow.net/diffusion-annonces.php?MDP_PARTENAIRE=a4d04dd3423c4ad61816f3d04005f999798f3399&DIFFUSEUR=SITE_FIDUCAR&ANNONCEUR=ag942850').then(async r => {
+          console.log('en fetxh');
   
           const annonces = r.data.annonce
           // console.log(annonces[0]);
@@ -375,7 +377,7 @@ let a = async function run () {
         
           console.log('end sync product');
       
-        }).catch(err => console.log(err))
+        })
       } catch (error) { console.log(error); break }
   }
 }()
