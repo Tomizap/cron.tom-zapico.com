@@ -4,13 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "alter-recrut": "node wheels/alter-recrut/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@tomizap/tools": "1.0.12",
+    "@tomizap/tools": "^1.1.78",
     "axios": "^1.6.8",
     "googleapis": "^134.0.0",
     "nodemailer": "^6.9.13",
