@@ -37,22 +37,21 @@ let a = async function () {
                 MONGO_URI
             }
         })
-        console.log(`init done`);
         const appointments = await api.google.spreadsheet.get(GOOGLE_BDD_ID, "APPOINTMENTS")
         const internals = await api.google.spreadsheet.get(GOOGLE_BDD_ID, 'INTERNALS')
         const companies = await api.google.spreadsheet.get(GOOGLE_BDD_ID, "COMPANIES")
         const appliers = await api.google.spreadsheet.get(GOOGLE_BDD_ID, "APPLIERS")
         // console.log(companies);
         const schemas = await api.mongo.exec({collection: 'schemas'})
-        console.log(`get data done in ${time} sec`);
+        console.log(`get data of alter-recrut done in ${time} sec`);
         try {
             await Promise.all([
                 async function emailing () {
-                    console.log('emailing companies');
+                    // console.log('emailing companies');
 
                     for (const company of companies) {
                         
-                        console.log(companies.indexOf(company));
+                        // console.log(companies.indexOf(company));
 
                         var status = company.STATUS
 
