@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "alter-recrut": "node wheels/alter-recrut/index.js"
+    "alter-recrut": "node wheels/alter-recrut/index.js",
+    "fiducar": "node wheels/fiducar/index.js"
   },
   "keywords": [],
   "author": "",

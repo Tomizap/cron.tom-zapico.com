@@ -7,13 +7,10 @@ let a = async function run () {
       var time = 0
       const timer = setInterval(() => {time++}, 1000)
       try {
-        console.log('begin');
+        console.log('begin Fiducar');
         await axios.get('https://sw.ubiflow.net/diffusion-annonces.php?MDP_PARTENAIRE=a4d04dd3423c4ad61816f3d04005f999798f3399&DIFFUSEUR=SITE_FIDUCAR&ANNONCEUR=ag942850').then(async r => {
-          // console.log('en fetxh');
   
           const annonces = r.data.annonce
-          // console.log(annonces[0]);
-        
           console.log('annonces: ', annonces.length);
         
           const products = []
@@ -41,8 +38,6 @@ let a = async function run () {
             })
           }
           console.log("products: ", products.length);
-          // console.log("products: ", products[0]);
-          // return
         
           var wc_categories = []
           var collecting = true
@@ -69,6 +64,8 @@ let a = async function run () {
             })
           }
           console.log("products_cat: ", wc_categories.length);
+
+          console.log("----------------");
           
           for (const annonce of annonces) {
         
@@ -101,7 +98,7 @@ let a = async function run () {
                 collecting = false
               })
             }
-            console.log("products_cat: ", wc_categories.length);
+            // console.log("products_cat: ", wc_categories.length);
         
             if (!wc_categories.find( wcc => 
                 [wcc.slug, wcc.name].includes(annonce.vehicule.marque)
@@ -162,7 +159,7 @@ let a = async function run () {
             ].map(cat => wc_categories.find(wcc => wcc.slug === cat.toLowerCase() || wcc.id === cat) || {})
             // console.log(categories);
         
-            console.log(annonce.offre.prix);
+            // console.log(annonce.offre.prix);
         
             // break
         
@@ -293,8 +290,8 @@ let a = async function run () {
             // console.log(product);
         
             if (!product || typeof product === 'undefined') {
-        
-              console.log("posting");
+              
+              // console.log("posting", item);
               const posting = await axios.post(
                 'https://fiducar.com/wp-json/wc/v3/products', 
                 item, 
@@ -305,10 +302,10 @@ let a = async function run () {
                   }
                 }
               ).then(r => {
-                console.log('posting ok');
+                console.log(`"${item.name}" has been posted`);
                 return r.data
               }).catch(err => {
-                console.log('error', err.response.data);
+                console.log('postingError', err.response.data);
                 return err.response
               })
         
@@ -328,7 +325,7 @@ let a = async function run () {
                 console.log("putting ok");
                 return r.data
               }).catch(err => {
-                console.log('error', err.response.data);
+                console.log('puttingError', err.response.data);
                 return err.response
               })
         
