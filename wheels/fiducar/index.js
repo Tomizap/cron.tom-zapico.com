@@ -65,7 +65,7 @@ let a = async function run () {
         }
         console.log("products_cat: ", wc_categories.length);
 
-        console.log(`end get of fiducar done in ${time} sec`);
+        console.log(`get data of fiducar done in ${time} sec`);
         console.log("----------------");
         
         for (const annonce of annonces) {
@@ -330,8 +330,15 @@ let a = async function run () {
             console.log("product in shop");
             continue
           }
-      
           if (product.categories.some(c => c.slug === "deja-vendu")) {
+            console.log("product in deja-vendu");
+            continue
+          }
+          if (product.categories.some(c => c.slug === "achat-moto")) {
+            console.log("product in deja-vendu");
+            continue
+          }
+          if (product.categories.some(c => c.slug === "moto")) {
             console.log("product in deja-vendu");
             continue
           }

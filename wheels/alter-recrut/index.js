@@ -21,9 +21,10 @@ const transporter = nodemailer.createTransport({
     },
   });
 
-let a = async function () {
+const AlterRcrut = async function () {
     var lapIndex = -1
-    while (true) {
+    var infinite = true
+    while (infinite === true) {
         lapIndex++
         var time = 0
         const timer = setInterval(() => {time++}, 1000)
@@ -37,25 +38,66 @@ let a = async function () {
                 MONGO_URI
             }
         })
+        console.log(`init of alter-recrut done in ${time} sec`);
+
         const appointments = await api.google.spreadsheet.get(GOOGLE_BDD_ID, "APPOINTMENTS")
         const internals = await api.google.spreadsheet.get(GOOGLE_BDD_ID, 'INTERNALS')
         const companies = await api.google.spreadsheet.get(GOOGLE_BDD_ID, "COMPANIES")
+        const companiesMapping = {
+            set: {
+                NAME: "Nom",
+                PHONE: "Téléphone",
+                EMAIL: "Email",
+                LOCATION: "Adresse",
+                POSTCODE: "Code Postal",
+                COUNTY: "Département",
+                CITY: "Ville",
+                STATE: "Région",
+                COUNTRY: "Pays",
+                WEBSITE: "Site internet",
+                "RECRUITERS.NAME": "Nom Recruteur",
+                "RECRUITERS.PHONE": "Téléphone Recruteur",
+                "RECRUITERS.EMAIL": "Email Recruteur",
+                "JOBS.NAME": "Nom du poste",
+                "JOBS.SPECIFICATIONS": "Critères de sélection",
+                "JOBS.VISIO": "Visioconférence ?",
+                LAST_CALL_DATE: 'Date dernier appel',
+                LAST_EMAIL_DATE: 'Date dernier email',
+                STATUS: "Statut",
+                COMMENT: "Commentaire",
+            },
+        }
         const appliers = await api.google.spreadsheet.get(GOOGLE_BDD_ID, "APPLIERS")
-        // console.log(companies);
-        const schemas = await api.mongo.exec({collection: 'schemas'})
         console.log(`get data of alter-recrut done in ${time} sec`);
+
         try {
             await Promise.all([
-                async function emailing () {
-                    // console.log('emailing companies');
+                async function loopCompanies () {
 
-                    for (const company of companies) {
+                    const columnsMapping = api.google.spreadsheet.createColumnsMapping(companies)
+
+                    for (var company of companies) {
                         
-                        // console.log(companies.indexOf(company));
+                        console.log(companies.indexOf(company));
 
-                        var status = company.STATUS
+                        const rowIndex = companies.indexOf(company)+2
+                        var status = company[companiesMapping.set['STATUS']]
 
                         if (status.includes('emailing') || status.includes('cv_proposal')) {
+
+                            var date = new Date()
+                            if (date.getDay() === 6 || date.getDay() === 0 || date.getHours() < 6 || date.getHours() >= 20) {
+                                // console.log('out of date');
+                            }
+
+                            if (company[companiesMapping.set["LAST_EMAIL_DATE"]] !== "") {
+                                const parts = company[companiesMapping.set['LAST_EMAIL_DATE']].split('/');
+                                const EMAIL_DATE = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00`)
+                                if ((new Date() - EMAIL_DATE) / (1000 * 3600 * 24) < 7) {
+                                    // console.log('too early for emailing');
+                                    continue
+                                }
+                            }
 
                             var emailSentCount = status.split('_')
                             if (emailSentCount.length === 1) {
@@ -71,10 +113,11 @@ let a = async function () {
                                 }
                             }
     
-                            if (emailSentCount > 2) {
+                            if (emailSentCount >= 2) {
+                                console.log('too much emailing -> disqualified');
                                 await api.google.client.sheets.spreadsheets.values.update({
                                     spreadsheetId: GOOGLE_BDD_ID,
-                                    range: "COMPANIES!Y" + (companies.indexOf(company)+2),
+                                    range: "COMPANIES!"+columnsMapping[companiesMapping.set['STATUS']]+(rowIndex),
                                     valueInputOption: 'RAW',
                                     requestBody: {
                                     values: [["disqualified"]],
@@ -83,14 +126,15 @@ let a = async function () {
                                 continue
                             }
                             
-                            company.EMAIL = await api.item.clear.email(company.EMAIL)
-                            if (company.EMAIL === '') {
-                                if (company['RECRUITERS.EMAIL'] !== '') {
-                                    company.EMAIL = await api.item.clear.email(company['RECRUITERS.EMAIL'])
+                            company[companiesMapping.set["EMAIL"]] = await api.item.clear.email(company[companiesMapping.set["EMAIL"]] || '')
+                            if (company[companiesMapping.set["EMAIL"]] === '') {
+                                if (company[companiesMapping.set['RECRUITERS.EMAIL']] !== '') {
+                                    company[companiesMapping.set["EMAIL"]] = api.item.clear.email(company[companiesMapping.set['RECRUITERS.EMAIL']])
                                 } else {
+                                    console.log('no email');
                                     await api.google.client.sheets.spreadsheets.values.update({
                                         spreadsheetId: GOOGLE_BDD_ID,
-                                        range: "COMPANIES!Y" + (companies.indexOf(company)+2),
+                                        range: "COMPANIES!"+columnsMapping[companiesMapping.set['STATUS']]+(rowIndex),
                                         valueInputOption: 'RAW',
                                         requestBody: {
                                         values: [["lead"]],
@@ -99,31 +143,24 @@ let a = async function () {
                                     continue
                                 }
                             }
-                            if (!api.field.isEmail(company.EMAIL)) {
-                                console.log("problem with email: ", company.EMAIL);
+                            if (api.field.isValidEmail(company[companiesMapping.set["EMAIL"]]) === false) {
+                                console.log("problem with email: ", company[companiesMapping.set["EMAIL"]]);
                                 continue
-                            }
-
-                            if (company.EMAIL_DATE !== "") {
-                                const parts = company.EMAIL_DATE.split('/');
-                                const EMAIL_DATE = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00`)
-                                if ((new Date() - EMAIL_DATE) / (1000 * 3600 * 24) < 7) {
-                                    continue
-                                }
                             }
     
                             var sale = await internals.find(internal => {
-                                if (company.SALE !== '' && internal.STATUS === 'in') {
-                                    return internal.EMAIL === company.SALE  
+                                if (company[companiesMapping['SALES']] !== '' && internal.STATUS === 'in') {
+                                    return internal.EMAIL === company[companiesMapping['SALES']]
                                 } else {
                                     return internal.GMAIL === 'zaptom.pr@gmail.com'
                                 }
                             })
                             if (typeof sale === 'undefined') {
                                 sale = await internals.find(internal => internal.EMAIL === 't.zapico@alter-recrut.fr')
+                                console.log('setting sale t.zapico');
                                 await api.google.client.sheets.spreadsheets.values.update({
                                     spreadsheetId: GOOGLE_BDD_ID,
-                                    range: `COMPANIES!V${(companies.indexOf(company)+2)}`,
+                                    range: `COMPANIES!${columnsMapping[companiesMapping.set['STATUS']]}${(rowIndex)}`,
                                     valueInputOption: 'RAW',
                                     requestBody: {
                                     values: [["t.zapico@alter-recrut.fr"]],
@@ -133,7 +170,7 @@ let a = async function () {
     
                             const mailOptions = {
                                 from: `${sale.NAME} <${api.item.clear.email(sale.EMAIL)}>`,
-                                to: `${api.item.clear.email(company.EMAIL)}`,
+                                to: `${api.item.clear.email(company[companiesMapping.set["EMAIL"]])}`,
                                 subject: "",
                                 html: `<p>Bonjour,</p>`,
                                 attachments: [],
@@ -142,10 +179,10 @@ let a = async function () {
                             if (status.includes('emailing')) {
                                 mailOptions.subject = `Accompagnement gratuit pour recrutement en alternance`
     
-                                if (company["JOBS.NAME"] !== "") {
+                                if (company[companiesMapping.set["JOBS.NAME"]] !== "") {
                                     await api.google.client.sheets.spreadsheets.values.update({
                                         spreadsheetId: GOOGLE_BDD_ID,
-                                        range: "COMPANIES!Y" + (companies.indexOf(company)+2),
+                                        range: "COMPANIES!"+columnsMapping[companiesMapping.set['STATUS']]+(rowIndex),
                                         valueInputOption: 'RAW',
                                         requestBody: {
                                         values: [["cv_proposal_0"]],
@@ -168,7 +205,7 @@ let a = async function () {
                                     `
                                 } else if (emailSentCount === 1) {
                                     mailOptions.html += `
-                                        <p>Je me permets de vous relancer suite à mon précédent message ${company.EMAIL_DATE !== "" ? `datant du ${company.EMAIL_DATE}` : ''} concernant votre recrutement en alternance.</p>
+                                        <p>Je me permets de vous relancer suite à mon précédent message ${company[companiesMapping.set["LAST_EMAIL_DATE"]] !== "" ? `datant du ${company[companiesMapping.set["LAST_EMAIL_DATE"]]}` : ''} concernant votre recrutement en alternance.</p>
                                         <p>Envisagez-vous de développer votre entreprise par le biais du recrutement en alternance prochainement ?</p>
                                         <p>Nous pouvons sélectionner gratuitement des candidats proches de chez vous, correspondant à vos critères de sélection, avec de l'expérience et qui souhaite évoluer professionnellement au sein de votre secteur d'activités.</p>
                                         <p>Nous accompagnons les candidats à trouver une alternance dans les domaines suivants :</p>
@@ -188,12 +225,12 @@ let a = async function () {
                             
                             } else if (status.includes('cv_proposal')) {
     
-                                mailOptions.subject = `Proposition de CV qualifiés pour un poste de ${company["JOBS.NAME"]} en alternance`
+                                mailOptions.subject = `Proposition de CV qualifiés pour un poste de ${company[companiesMapping.set["JOBS.NAME"]]} en alternance`
         
-                                if (company["JOBS.NAME"] === "") {
+                                if (company[companiesMapping.set["JOBS.NAME"]] === "") {
                                     await api.google.client.sheets.spreadsheets.values.update({
                                         spreadsheetId: GOOGLE_BDD_ID,
-                                        range: "COMPANIES!Y" + (companies.indexOf(company)+2),
+                                        range: "COMPANIES!"+columnsMapping[companiesMapping.set['STATUS']]+(rowIndex),
                                         valueInputOption: 'RAW',
                                         requestBody: {
                                         values: [["emailing_0"]],
@@ -206,7 +243,7 @@ let a = async function () {
                                     .filter(applier => 
                                         applier.STATUS === "registered" 
                                         && applier.COUNTY === company.COUNTY
-                                        && applier.JOBS.toLowerCase() === company["JOBS.NAME"].toLowerCase()
+                                        && applier.JOBS.toLowerCase() === company[companiesMapping.set["JOBS.NAME"]].toLowerCase()
                                         )
                                     .sort((a, b) => parseInt(b.SCORE || "0") - parseInt(a.SCORE || "0"))
                                     .slice(0, 5)
@@ -235,7 +272,7 @@ let a = async function () {
                                 if (mailOptions.attachments.length > 1) {
                                     mailOptions.html += `
                                         <p>Suite à notre précédent échange, nous avons sélectionné ${selectedAppliers.length} candidats pour votre besoin de recrutement en alternance.</p>
-                                        <p>Ils habitent tous dans le ${company.COUNTY} et sont intéressés par l'opportunité de travailler au sein de votre entreprise en tant que ${company["JOBS.NAME"]}.</p>
+                                        <p>Ils habitent tous dans le ${company.COUNTY} et sont intéressés par l'opportunité de travailler au sein de votre entreprise en tant que ${company[companiesMapping.set["JOBS.NAME"]]}.</p>
                                         <p>Vous trouverez en pièce jointe leurs CV. Je vous invite à les contacter afin de prendre connaissance de leur motivation à developper votre activité.</p>
                                         <p>Cordialement,</p>
                                     `
@@ -244,15 +281,13 @@ let a = async function () {
                                     continue
                                 }
                                 
-                            } else {
-                                continue
                             }
     
                             mailOptions.html += `
                                 <br>
                                 ${sale.SIGNATURE}
                             `
-    
+
                             const emailing = await transporter.sendMail(mailOptions)
                             // console.log(emailing);
                             if (emailing.response.includes("OK")) {
@@ -264,19 +299,19 @@ let a = async function () {
                                 const year = date[0]
                                 await api.google.client.sheets.spreadsheets.values.update({
                                     spreadsheetId: GOOGLE_BDD_ID,
-                                    range: `COMPANIES!W${(companies.indexOf(company)+2)}`,
+                                    range: `COMPANIES!${columnsMapping[companiesMapping.set['LAST_EMAIL_DATE']]}${(rowIndex)}`,
                                     valueInputOption: 'RAW',
                                     requestBody: {
                                     values: [[`${day}/${month}/${year}`]],
                                     },
                                 })
     
-                                console.log(`email sent to ${company.EMAIL}`);
+                                console.log(`email sent to ${company[companiesMapping.set["EMAIL"]]}`);
                                     // .then(r => console.log(r));
                                 
                                 await api.google.client.sheets.spreadsheets.values.update({
                                     spreadsheetId: GOOGLE_BDD_ID,
-                                    range: "COMPANIES!Y" + (companies.indexOf(company)+2),
+                                    range: "COMPANIES!"+columnsMapping[companiesMapping.set["STATUS"]]+(rowIndex),
                                     valueInputOption: 'RAW',
                                     requestBody: {
                                     values: [[`${status}_${emailSentCount}`]],
@@ -284,7 +319,7 @@ let a = async function () {
                                 })
                                     // .then(r => console.log(r))
                             } else {
-                                console.log(emailing.response);
+                                console.log('EmailError: ', emailing.response);
                             }
 
                         }
@@ -293,42 +328,17 @@ let a = async function () {
                     }
                 }(),
                 // await api.google.spreadsheet.rich(GOOGLE_BDD_ID, 'COMPANIES'),
-                await api.appointments.schedule(appointments)
-                // await api.item.import.data(companies, {
-                //     map: {
-                //         set: {
-                //             LAST_CALL_DATE: 'CALL_DATE',
-                //             LAST_EMAIL_DATE: 'EMAIL_DATE'
-                //         },
-                //         delete: [
-                //             'JOBS'
-                //         ]
-                //     },
-                //     // ieSelector: ['PHONE'],
-                //     schemas
-                // }),
-                // await api.tools.import.data(appliers, {
-                //     map: {
-                //         set: {
-                //             LAST_CALL_DATE: 'CALL_DATE',
-                //             LAST_EMAIL_DATE: 'EMAIL_DATE'
-                //         },
-                //         delete: [
-                //             "RECRUITER", 'JOBS'
-                //         ]
-                //     },
-                //     ieSelector: ['PHONE'],
-                //     schemas
-                // }),
+                // await api.appointments.schedule(appointments),
+                // await api.item.import.data(companies, {map: companiesMapping}),
             ])
         } catch (error) { 
             console.log("ErrorAlterRecrut: ", error);
-            clearInterval(timer); 
+            infinite = false 
+        } finally {
+            console.log(`end lap ${lapIndex} of AlterRecrut in ${time} seconds !`);
+            clearInterval(timer)
             await api.close()
-            break }
-        console.log(`end lap ${lapIndex} of AlterRecrut in ${time} seconds !`);
-        clearInterval(timer)
-        // await api.close()
-        break
+            if (infinite === true) break
+        }
     }
 }()
